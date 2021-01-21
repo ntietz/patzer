@@ -26,7 +26,7 @@ impl Default for Board {
 
 impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut repr = String::from("--------\n--------\n--------\n--------\n--------\n--------\n--------\n--------\n").into_bytes();
+        let mut repr = String::from("........\n........\n........\n........\n........\n........\n........\n........\n").into_bytes();
 
         for (idx, &loc) in self.white_pieces.iter().enumerate() {
             if on_board(loc) {
