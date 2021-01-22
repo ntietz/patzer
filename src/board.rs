@@ -1,20 +1,77 @@
 use std::fmt;
 
-const WHITE_SYMBOLS: [u8; 16] = [b'K', b'Q', b'R', b'R', b'B', b'B', b'N', b'N', b'P', b'P', b'P', b'P', b'P', b'P', b'P', b'P'];
-const BLACK_SYMBOLS: [u8; 16] = [b'k', b'q', b'r', b'r', b'b', b'b', b'n', b'n', b'p', b'p', b'p', b'p', b'p', b'p', b'p', b'p'];
+#[repr(u8)]
+#[derive(Clone, Copy)]
+pub enum Square {
+    Empty = 0,
+    WhiteKing,
+    WhiteQueen,
+    WhiteRook,
+    WhiteBishop,
+    WhiteKnight,
+    WhitePawn,
+    BlackKing,
+    BlackQueen,
+    BlackRook,
+    BlackBishop,
+    BlackKnight,
+    BlackPawn,
+}
+
+impl fmt::Display for Square {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let c = match self {
+            Square::Empty => ".",
+            Square::WhiteKing => "K",
+            Square::WhiteQueen => "Q",
+            Square::WhiteRook => "R",
+            Square::WhiteBishop => "B",
+            Square::WhiteKnight => "N",
+            Square::WhitePawn => "P",
+            Square::BlackKing => "k",
+            Square::BlackQueen => "q",
+            Square::BlackRook => "r",
+            Square::BlackBishop => "b",
+            Square::BlackKnight => "n",
+            Square::BlackPawn => "p",
+        };
+        write!(f, "{}", c)
+    }
+}
 
 pub struct Board {
-    /// king, queen, rooks, bishops, knights, pawns
-    pub white_pieces: [u8; 16],
-    pub black_pieces: [u8; 16],
+    // 0 is A1, 1 is A2, 8 is B1, etc.
+    pub squares: [Square; 64],
 }
 
 impl Board {
     pub fn new() -> Board {
-        Board {
-            white_pieces: [0x04, 0x03, 0x00, 0x07, 0x02, 0x05, 0x01, 0x06, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17],
-            black_pieces: [0x74, 0x73, 0x70, 0x77, 0x72, 0x75, 0x71, 0x76, 0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67],
+        let mut squares = [Square::Empty; 64];
+
+        squares[0] = Square::WhiteRook;
+        squares[1] = Square::WhiteKnight;
+        squares[2] = Square::WhiteBishop;
+        squares[3] = Square::WhiteQueen;
+        squares[4] = Square::WhiteKing;
+        squares[5] = Square::WhiteBishop;
+        squares[6] = Square::WhiteKnight;
+        squares[7] = Square::WhiteRook;
+
+        for idx in 0..8 {
+            squares[idx + 8] = Square::WhitePawn;
+            squares[idx + 6 * 8] = Square::BlackPawn;
         }
+
+        squares[7 * 8] = Square::BlackRook;
+        squares[7 * 8 + 1] = Square::BlackKnight;
+        squares[7 * 8 + 2] = Square::BlackBishop;
+        squares[7 * 8 + 3] = Square::BlackQueen;
+        squares[7 * 8 + 4] = Square::BlackKing;
+        squares[7 * 8 + 5] = Square::BlackBishop;
+        squares[7 * 8 + 6] = Square::BlackKnight;
+        squares[7 * 8 + 7] = Square::BlackRook;
+
+        Board { squares }
     }
 }
 
@@ -26,28 +83,26 @@ impl Default for Board {
 
 impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut repr = String::from("........\n........\n........\n........\n........\n........\n........\n........\n").into_bytes();
-
-        for (idx, &loc) in self.white_pieces.iter().enumerate() {
-            if on_board(loc) {
-                let rank = (loc & 0xF0) >> 4;
-                let file = loc & 0x0F;
-                repr[((7-rank)*9 + file) as usize] = WHITE_SYMBOLS[idx];
+        for rank in (0..8).rev() {
+            for file in 0..8 {
+                write!(f, "{}", self.squares[rank * 8 + file])?;
+            }
+            if rank > 0 {
+                f.write_str("\n")?;
             }
         }
 
-        for (idx, &loc) in self.black_pieces.iter().enumerate() {
-            if on_board(loc) {
-                let rank = (loc & 0xF0) >> 4;
-                let file = loc & 0x0F;
-                repr[((7-rank)*9 + file) as usize] = BLACK_SYMBOLS[idx];
-            }
-        }
-
-        write!(f, "{}", String::from_utf8(repr).unwrap())
+        Ok(())
     }
 }
 
-fn on_board(loc: u8) -> bool {
-    (loc & 0x88) == 0
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::mem::size_of;
+
+    #[test]
+    fn squares_require_1_byte() {
+        assert_eq!(size_of::<Square>(), 1);
+    }
 }
