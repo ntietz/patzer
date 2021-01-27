@@ -18,6 +18,15 @@ pub enum Square {
     BlackPawn = 12,
 }
 
+#[repr(u8)]
+#[derive(Clone, Copy, Debug)]
+pub enum CastlingRights {
+    Neither = 0,
+    QueenSide = 1,
+    KingSide = 2,
+    Both = 3,
+}
+
 impl fmt::Display for Square {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let c = match self {
@@ -42,6 +51,10 @@ impl fmt::Display for Square {
 pub struct Board {
     // 0 is A1, 1 is A2, 8 is B1, etc.
     pub squares: [Square; 64],
+
+    pub white_castling_rights: CastlingRights,
+    pub black_castling_rights: CastlingRights,
+    pub white_to_move: bool,
 }
 
 impl Board {
@@ -71,7 +84,12 @@ impl Board {
         squares[7 * 8 + 6] = Square::BlackKnight;
         squares[7 * 8 + 7] = Square::BlackRook;
 
-        Board { squares }
+        Board {
+            squares,
+            white_castling_rights: CastlingRights::Both,
+            black_castling_rights: CastlingRights::Both,
+            white_to_move: true,
+        }
     }
 }
 
