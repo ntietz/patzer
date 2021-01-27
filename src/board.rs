@@ -4,18 +4,18 @@ use std::fmt;
 #[derive(Clone, Copy)]
 pub enum Square {
     Empty = 0,
-    WhiteKing,
-    WhiteQueen,
-    WhiteRook,
-    WhiteBishop,
-    WhiteKnight,
-    WhitePawn,
-    BlackKing,
-    BlackQueen,
-    BlackRook,
-    BlackBishop,
-    BlackKnight,
-    BlackPawn,
+    WhiteKing = 1,
+    WhiteQueen = 2,
+    WhiteRook = 3,
+    WhiteBishop = 4,
+    WhiteKnight = 5,
+    WhitePawn = 6,
+    BlackKing = 7,
+    BlackQueen = 8,
+    BlackRook = 9,
+    BlackBishop = 10,
+    BlackKnight = 11,
+    BlackPawn = 12,
 }
 
 impl fmt::Display for Square {
