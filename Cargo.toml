@@ -1,0 +1,11 @@
+[package]
+name = "patzer"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+# i don't want to reinvent move generation right now kthx
+chess = "3.2.0"
