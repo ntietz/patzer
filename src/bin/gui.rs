@@ -1,8 +1,9 @@
 use eframe::egui;
 
-
 pub fn main() {
-    let options = eframe::NativeOptions::default();
+    let mut options = eframe::NativeOptions::default();
+    options.default_theme = eframe::Theme::Light;
+
     eframe::run_native(
         "Patzer App",
         options,
