@@ -9,3 +9,6 @@ edition = "2021"
 
 # i don't want to reinvent move generation right now kthx
 chess = "3.2.0"
+
+# non-determinism makes things interesting
+rand = "0.8.5"
