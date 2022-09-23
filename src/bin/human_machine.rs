@@ -1,7 +1,7 @@
 use chess::{Color, Game, MoveGen};
 
 use patzer::prompt::input_human_move;
-use patzer::strategies::{first_legal_move, random_move};
+use patzer::strategies::random_move;
 
 pub fn main() {
     let mut game = Game::new();
