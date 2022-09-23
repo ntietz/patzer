@@ -84,7 +84,9 @@ impl eframe::App for PatzerApp {
         ctx.request_repaint_after(std::time::Duration::from_millis(10));
 
         egui::CentralPanel::default().show(ctx, |ui| {
+            ui.add(egui::Label::new(&self.state.black_name));
             ui.add(ChessBoard::new(self.state.current_position()));
+            ui.add(egui::Label::new(&self.state.white_name));
         });
     }
 
