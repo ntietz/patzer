@@ -34,8 +34,16 @@ impl eframe::App for PatzerApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             let (white_name, black_name) = self.state.player_names();
             let current_position = self.state.current_position();
+            let selected_square = self.state.ui_selected_square();
+            let select_fn = self.state.ui_select_fn();
+            let move_fn = self.state.ui_attempt_move_fn();
             ui.add(egui::Label::new(black_name));
-            ui.add(ChessBoard::new(current_position));
+            ui.add(ChessBoard::new(
+                current_position,
+                selected_square,
+                select_fn,
+                move_fn,
+            ));
             ui.add(egui::Label::new(white_name));
         });
     }

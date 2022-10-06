@@ -25,4 +25,8 @@ impl Player {
             _ => None,
         }
     }
+
+    pub fn is_human(&self) -> bool {
+        matches!(self, Player::Human(_))
+    }
 }

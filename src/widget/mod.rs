@@ -3,19 +3,35 @@ use chess::{Board, Color, Piece};
 use eframe::egui;
 use eframe::egui::Widget;
 
+pub type SelectionFn = dyn FnMut(Option<(usize, usize)>) + Send + Sync;
+
 pub struct ChessBoard {
     board: Board,
+
+    selected_square: Option<(usize, usize)>,
+    select_fn: Box<SelectionFn>,
+    attempt_move_fn: Box<SelectionFn>,
     // TODO: last move
 }
 
 impl ChessBoard {
-    pub fn new(board: Board) -> Self {
-        Self { board }
+    pub fn new(
+        board: Board,
+        selected_square: Option<(usize, usize)>,
+        select_fn: Box<SelectionFn>,
+        attempt_move_fn: Box<SelectionFn>,
+    ) -> Self {
+        Self {
+            board,
+            selected_square,
+            select_fn,
+            attempt_move_fn,
+        }
     }
 }
 
 impl Widget for ChessBoard {
-    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+    fn ui(mut self, ui: &mut egui::Ui) -> egui::Response {
         let square_min_size = 50.0;
 
         ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
@@ -33,6 +49,7 @@ impl Widget for ChessBoard {
 
         for file_idx in 0..8usize {
             for rank_idx in 0..8usize {
+                let selected = Some((rank_idx, file_idx)) == self.selected_square;
                 let x_offset = (file_idx as f32) * square_min_size;
                 let y_offset = ((7 - rank_idx) as f32) * square_min_size;
                 let xr = std::ops::RangeInclusive::new(
@@ -47,7 +64,14 @@ impl Widget for ChessBoard {
                 let square_rect = egui::Rect::from_x_y_ranges(xr, yr);
                 let painter = ui.painter_at(square_rect);
 
-                self.paint_square(rank_idx, file_idx, square_rect, painter, &response);
+                self.paint_square(
+                    rank_idx,
+                    file_idx,
+                    square_rect,
+                    painter,
+                    &response,
+                    selected,
+                );
             }
         }
 
@@ -57,12 +81,13 @@ impl Widget for ChessBoard {
 
 impl ChessBoard {
     fn paint_square(
-        &self,
+        &mut self,
         rank_idx: usize,
         file_idx: usize,
         rect: egui::Rect,
         painter: egui::Painter,
         response: &egui::Response,
+        selected: bool,
     ) {
         let rank = chess::Rank::from_index(rank_idx);
         let file = chess::File::from_index(file_idx);
@@ -73,10 +98,12 @@ impl ChessBoard {
         let light = (rank_idx + file_idx) % 2 == 0;
 
         if self.square_clicked(response, &rect) {
-            println!("clicked square {} {}", rank_idx, file_idx);
+            self.handle_click(rank_idx, file_idx);
         }
 
-        let bg_color = if light {
+        let bg_color = if selected {
+            theme::selected_square()
+        } else if light {
             theme::light_square()
         } else {
             theme::dark_square()
@@ -115,6 +142,25 @@ impl ChessBoard {
             && response
                 .interact_pointer_pos()
                 .map_or(false, |pos| rect.contains(pos))
+    }
+
+    fn handle_click(&mut self, rank: usize, file: usize) {
+        println!("clicked square {} {}", rank, file);
+
+        match self.selected_square {
+            None => {
+                println!("setting selected square");
+                (self.select_fn)(Some((rank, file)));
+            }
+            Some((r2, f2)) if r2 != rank || f2 != file => {
+                println!("attempting move");
+                (self.attempt_move_fn)(Some((rank, file)));
+            }
+            _ => {
+                println!("clearing selected square");
+                (self.select_fn)(None);
+            }
+        }
     }
 }
 

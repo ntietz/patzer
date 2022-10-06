@@ -1,7 +1,9 @@
 use crate::game_state::GameState;
 use crate::player::{MoveFunction, Player};
-use crate::strategies::{first_legal_move, random_move};
-use chess::{Board, ChessMove, Color, Game};
+use crate::strategies::random_move;
+use crate::ui_state::UiState;
+use crate::widget::SelectionFn;
+use chess::{Board, ChessMove, Color, File, Game, Rank, Square};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::thread::JoinHandle;
@@ -9,6 +11,7 @@ use std::thread::JoinHandle;
 #[derive(Clone)]
 pub struct AppState {
     game_state: Arc<Mutex<GameState>>,
+    ui_state: Arc<Mutex<UiState>>,
 
     white: Arc<Mutex<Player>>,
     black: Arc<Mutex<Player>>,
@@ -19,14 +22,13 @@ pub struct AppState {
 
 impl AppState {
     pub fn new() -> Self {
-        let white = Player::Computer("Random moves".into(), Arc::new(Box::new(random_move)));
-        let black = Player::Computer(
-            "First legal move".into(),
-            Arc::new(Box::new(first_legal_move)),
-        );
+        let white = Player::Human("Me".into());
+        //let white = Player::Computer("Random moves".into(), Arc::new(Box::new(random_move)));
+        let black = Player::Computer("Random moves".into(), Arc::new(Box::new(random_move)));
 
         AppState {
             game_state: Arc::new(Mutex::new(GameState::new(white.name(), black.name()))),
+            ui_state: Arc::new(Mutex::new(UiState::default())),
             white: Arc::new(Mutex::new(white)),
             black: Arc::new(Mutex::new(black)),
             white_handle: Arc::new(Mutex::new(None)),
@@ -67,6 +69,13 @@ impl AppState {
         self.game_state.lock().unwrap().game.current_position()
     }
 
+    pub fn human_to_move(&self) -> bool {
+        match self.game_state.lock().unwrap().game.side_to_move() {
+            Color::White => self.white.lock().unwrap().is_human(),
+            Color::Black => self.black.lock().unwrap().is_human(),
+        }
+    }
+
     pub fn start_computer_players(&mut self) {
         let white_player = self.white.lock().unwrap().clone();
         let state = self.clone();
@@ -93,6 +102,56 @@ impl AppState {
 
             run_computer(state, move_fn, color);
         }));
+    }
+
+    pub fn ui_select_fn(&self) -> Box<SelectionFn> {
+        let mut app_state = self.clone();
+
+        let f = move |selection: Option<(usize, usize)>| {
+            app_state.ui_set_selected_square(selection);
+            println!("s: {:?}", selection);
+        };
+
+        Box::new(f)
+    }
+
+    pub fn ui_attempt_move_fn(&self) -> Box<SelectionFn> {
+        let mut app_state = self.clone();
+
+        let f = move |to_selection: Option<(usize, usize)>| {
+            if app_state.human_to_move() {
+                let candidate_move = match (
+                    app_state.ui_state.lock().unwrap().selected_square,
+                    to_selection,
+                ) {
+                    (Some((r1, f1)), Some((r2, f2))) => {
+                        let from_sq =
+                            Square::make_square(Rank::from_index(r1), File::from_index(f1));
+                        let to_sq = Square::make_square(Rank::from_index(r2), File::from_index(f2));
+                        // TODO: handle promotion
+                        Some(ChessMove::new(from_sq, to_sq, None))
+                    }
+                    _ => None,
+                };
+
+                if let Some(candidate_move) = candidate_move {
+                    println!("cm: {:?}", candidate_move);
+                    app_state.make_move(candidate_move);
+                }
+            }
+
+            app_state.ui_set_selected_square(None);
+        };
+
+        Box::new(f)
+    }
+
+    pub fn ui_selected_square(&self) -> Option<(usize, usize)> {
+        self.ui_state.lock().unwrap().selected_square
+    }
+
+    pub fn ui_set_selected_square(&mut self, selection: Option<(usize, usize)>) {
+        self.ui_state.lock().unwrap().selected_square = selection;
     }
 }
 
