@@ -9,22 +9,19 @@ pub fn input_human_move(board: &Board, _moves: &mut MoveGen) -> Option<ChessMove
     stdin.read_line(&mut buffer).expect("reading stdin failed");
 
     if is_resignation(&buffer) {
-        return None;
+        None
     } else {
-        return match ChessMove::from_san(board, &buffer) {
+        match ChessMove::from_san(board, &buffer) {
             Ok(m) => Some(m),
             Err(_) => None,
-        };
+        }
     }
 }
 
 /// is_resignation will parse the input string for a few patterns of resigning,
 /// and will return true if the input signals a resignation.
 fn is_resignation(input: &str) -> bool {
-    match input {
-        "resign" | "quit" | "flip board" => true,
-        _ => false,
-    }
+    matches!(input, "resign" | "quit" | "flip board")
 }
 
 #[cfg(test)]
