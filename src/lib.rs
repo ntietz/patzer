@@ -6,3 +6,4 @@ pub mod strategies;
 pub mod theme;
 pub mod ui_state;
 pub mod widget;
+pub mod windows;
