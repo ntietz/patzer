@@ -180,13 +180,12 @@ impl AppState {
         }
 
         if self.human_to_move() {
-            match (self.ui_state.lock().unwrap().selected_square, to_selection) {
-                (Some((r1, f1)), Some((r2, f2))) => {
-                    let from_sq = Square::make_square(Rank::from_index(r1), File::from_index(f1));
-                    let to_sq = Square::make_square(Rank::from_index(r2), File::from_index(f2));
-                    self.make_move(ChessMove::new(from_sq, to_sq, promote_to));
-                }
-                _ => {}
+            if let (Some((r1, f1)), Some((r2, f2))) =
+                (self.ui_state.lock().unwrap().selected_square, to_selection)
+            {
+                let from_sq = Square::make_square(Rank::from_index(r1), File::from_index(f1));
+                let to_sq = Square::make_square(Rank::from_index(r2), File::from_index(f2));
+                self.make_move(ChessMove::new(from_sq, to_sq, promote_to));
             };
         }
 

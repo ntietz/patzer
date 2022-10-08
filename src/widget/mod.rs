@@ -54,8 +54,7 @@ impl Widget for ChessBoard {
 
                 self.paint_square(
                     ui,
-                    rank_idx,
-                    file_idx,
+                    (rank_idx, file_idx),
                     square_rect,
                     painter,
                     &response,
@@ -72,13 +71,13 @@ impl ChessBoard {
     fn paint_square(
         &mut self,
         ui: &mut egui::Ui,
-        rank_idx: usize,
-        file_idx: usize,
+        coords: (usize, usize),
         rect: egui::Rect,
         painter: egui::Painter,
         response: &egui::Response,
         selected: bool,
     ) {
+        let (rank_idx, file_idx) = coords;
         let board = self.board;
         let rank = chess::Rank::from_index(rank_idx);
         let file = chess::File::from_index(file_idx);
@@ -91,7 +90,7 @@ impl ChessBoard {
         let popup_id =
             ui.make_persistent_id(format!("promotion-dialogue-{}-{}", rank_idx, file_idx));
 
-        egui::popup::popup_below_widget(ui, popup_id, &response, |ui| {
+        egui::popup::popup_below_widget(ui, popup_id, response, |ui| {
             if let Some((rank_from, file_from)) = self.selected_square {
                 if attempting_promotion(&board, (rank_from, file_from), (rank_idx, file_idx)) {
                     if ui.button("queen").clicked() {

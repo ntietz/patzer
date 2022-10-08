@@ -60,10 +60,8 @@ fn display_main_window(ctx: &egui::Context, state: &mut AppState) {
             });
         });
 
-        if ui.add(egui::Button::new("resign")).clicked() {
-            if state.human_to_move() {
-                state.resign(state.side_to_move());
-            }
+        if ui.add(egui::Button::new("resign")).clicked() && state.human_to_move() {
+            state.resign(state.side_to_move());
         }
 
         if ui.add(egui::Button::new("declare draw")).clicked() {
