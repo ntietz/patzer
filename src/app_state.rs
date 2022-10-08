@@ -20,8 +20,7 @@ pub struct AppState {
 
 impl AppState {
     pub fn new() -> Self {
-        let white = Player::Human("Me".into());
-        //let white = Player::Computer("Random moves".into(), Arc::new(Box::new(random_move)));
+        let white = Player::Human("Human".into());
         let black = Player::Computer("Random moves".into(), Arc::new(Box::new(random_move)));
 
         AppState {
