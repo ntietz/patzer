@@ -46,8 +46,7 @@ fn display_main_window(ctx: &egui::Context, state: &mut AppState) {
         let (white_name, black_name) = state.player_names();
         let current_position = state.current_position();
         let selected_square = state.ui_selected_square();
-        let select_fn = state.ui_select_fn();
-        let move_fn = state.ui_attempt_move_fn();
+        let inner_state = state.clone();
 
         egui::Frame::none().show(ui, |ui| {
             ui.group(|ui| {
@@ -55,13 +54,22 @@ fn display_main_window(ctx: &egui::Context, state: &mut AppState) {
                 ui.add(ChessBoard::new(
                     current_position,
                     selected_square,
-                    select_fn,
-                    move_fn,
+                    inner_state,
                 ));
                 ui.add(egui::Label::new(white_name));
-                //ui.allocate_space(ui.available_size());
             });
         });
+
+        if ui.add(egui::Button::new("resign")).clicked() {
+            if state.human_to_move() {
+                state.resign(state.side_to_move());
+            }
+        }
+
+        if ui.add(egui::Button::new("declare draw")).clicked() {
+            println!("attempting to declare draw");
+            state.declare_draw(state.side_to_move());
+        }
     });
 }
 

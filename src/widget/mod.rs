@@ -1,31 +1,22 @@
+use crate::app_state::AppState;
 use crate::theme;
-use chess::{Board, Color, Piece};
+use chess::{Board, Color, File, Piece, Rank};
 use eframe::egui;
-use eframe::egui::Widget;
-
-pub type SelectionFn = dyn FnMut(Option<(usize, usize)>) + Send + Sync;
+use egui::Widget;
 
 pub struct ChessBoard {
     board: Board,
-
     selected_square: Option<(usize, usize)>,
-    select_fn: Box<SelectionFn>,
-    attempt_move_fn: Box<SelectionFn>,
+    state: AppState,
     // TODO: last move
 }
 
 impl ChessBoard {
-    pub fn new(
-        board: Board,
-        selected_square: Option<(usize, usize)>,
-        select_fn: Box<SelectionFn>,
-        attempt_move_fn: Box<SelectionFn>,
-    ) -> Self {
+    pub fn new(board: Board, selected_square: Option<(usize, usize)>, state: AppState) -> Self {
         Self {
             board,
             selected_square,
-            select_fn,
-            attempt_move_fn,
+            state,
         }
     }
 }
@@ -62,6 +53,7 @@ impl Widget for ChessBoard {
                 let painter = ui.painter_at(square_rect);
 
                 self.paint_square(
+                    ui,
                     rank_idx,
                     file_idx,
                     square_rect,
@@ -79,6 +71,7 @@ impl Widget for ChessBoard {
 impl ChessBoard {
     fn paint_square(
         &mut self,
+        ui: &mut egui::Ui,
         rank_idx: usize,
         file_idx: usize,
         rect: egui::Rect,
@@ -86,16 +79,52 @@ impl ChessBoard {
         response: &egui::Response,
         selected: bool,
     ) {
+        let board = self.board;
         let rank = chess::Rank::from_index(rank_idx);
         let file = chess::File::from_index(file_idx);
         let square = chess::Square::make_square(rank, file);
 
-        let piece = self.board.piece_on(square);
-        let color = self.board.color_on(square);
+        let piece = board.piece_on(square);
+        let color = board.color_on(square);
         let light = (rank_idx + file_idx) % 2 == 1;
 
+        let popup_id =
+            ui.make_persistent_id(format!("promotion-dialogue-{}-{}", rank_idx, file_idx));
+
+        egui::popup::popup_below_widget(ui, popup_id, &response, |ui| {
+            if let Some((rank_from, file_from)) = self.selected_square {
+                if attempting_promotion(&board, (rank_from, file_from), (rank_idx, file_idx)) {
+                    if ui.button("queen").clicked() {
+                        println!("queren");
+                        self.state
+                            .ui_attempt_move(Some((rank_idx, file_idx)), Some(Piece::Queen));
+                        ui.memory().toggle_popup(popup_id);
+                    } else if ui.button("rook").clicked() {
+                        println!("rook");
+                        self.state
+                            .ui_attempt_move(Some((rank_idx, file_idx)), Some(Piece::Rook));
+                        ui.memory().toggle_popup(popup_id);
+                    } else if ui.button("knight").clicked() {
+                        println!("knight");
+                        self.state
+                            .ui_attempt_move(Some((rank_idx, file_idx)), Some(Piece::Knight));
+                        ui.memory().toggle_popup(popup_id);
+                    } else if ui.button("bishop").clicked() {
+                        println!("bish");
+                        self.state
+                            .ui_attempt_move(Some((rank_idx, file_idx)), Some(Piece::Bishop));
+                        ui.memory().toggle_popup(popup_id);
+                    } else if ui.button("cancel").clicked() {
+                        println!("nope");
+                        self.state.ui_select_square(None);
+                        ui.memory().toggle_popup(popup_id);
+                    }
+                }
+            }
+        });
+
         if self.square_clicked(response, &rect) {
-            self.handle_click(rank_idx, file_idx);
+            self.handle_click(ui, rank_idx, file_idx, &board, popup_id);
         }
 
         let bg_color = if selected {
@@ -141,20 +170,43 @@ impl ChessBoard {
                 .map_or(false, |pos| rect.contains(pos))
     }
 
-    fn handle_click(&mut self, rank: usize, file: usize) {
+    fn handle_click(
+        &mut self,
+        ui: &egui::Ui,
+        rank: usize,
+        file: usize,
+        board: &Board,
+        popup_id: egui::Id,
+    ) {
         match self.selected_square {
             None => {
-                (self.select_fn)(Some((rank, file)));
+                self.state.ui_select_square(Some((rank, file)));
             }
             Some((r2, f2)) if r2 != rank || f2 != file => {
-                // TODO: check for possible promotion and, if so, open the promotion dialogue
-                (self.attempt_move_fn)(Some((rank, file)));
+                if !attempting_promotion(board, (r2, f2), (rank, file)) {
+                    self.state.ui_attempt_move(Some((rank, file)), None);
+                } else {
+                    ui.memory().toggle_popup(popup_id);
+                }
             }
             _ => {
-                (self.select_fn)(None);
+                self.state.ui_select_square(None);
             }
         }
     }
+}
+
+fn attempting_promotion(board: &Board, from: (usize, usize), to: (usize, usize)) -> bool {
+    let rank = Rank::from_index(from.0);
+    let file = File::from_index(from.1);
+
+    let square = chess::Square::make_square(rank, file);
+
+    if let Some(Piece::Pawn) = board.piece_on(square) {
+        return to.0 == 0 || to.0 == 7;
+    }
+
+    false
 }
 
 fn piece_symbol(piece: Piece, color: Color) -> &'static str {

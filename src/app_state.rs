@@ -2,8 +2,7 @@ use crate::game_state::GameState;
 use crate::player::{MoveFunction, Player};
 use crate::strategies::random_move;
 use crate::ui_state::UiState;
-use crate::widget::SelectionFn;
-use chess::{Board, ChessMove, Color, File, Game, GameResult, Rank, Square};
+use chess::{Board, ChessMove, Color, File, Game, GameResult, Piece, Rank, Square};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::thread::JoinHandle;
@@ -86,14 +85,20 @@ impl AppState {
     }
 
     pub fn declare_draw(&self, color: Color) -> bool {
-        let game_state = self.game_state.lock().unwrap();
+        let mut game_state = self.game_state.lock().unwrap();
 
+        println!("declare_draw:b");
         if game_state.game.side_to_move() == color {
-            self.game_state.lock().unwrap().game.declare_draw()
+            game_state.game.declare_draw()
         } else {
-            // TODO: log/trace when this happens
+            println!("attempted to declare draw when not available");
             false
         }
+    }
+
+    pub fn side_to_move(&self) -> Color {
+        println!("side_to_move");
+        self.game_state.lock().unwrap().game.side_to_move()
     }
 
     pub fn resign(&self, color: Color) {
@@ -164,64 +169,33 @@ impl AppState {
         }));
     }
 
-    pub fn ui_select_fn(&self) -> Box<SelectionFn> {
-        let mut app_state = self.clone();
-
-        if !app_state.is_started() || app_state.is_finished() {
-            let f = |_: Option<(usize, usize)>| {};
-            return Box::new(f);
+    pub fn ui_select_square(&self, selection: Option<(usize, usize)>) {
+        if self.is_started() && !self.is_finished() {
+            self.ui_state.lock().unwrap().selected_square = selection;
         }
-
-        let f = move |selection: Option<(usize, usize)>| {
-            app_state.ui_set_selected_square(selection);
-            println!("s: {:?}", selection);
-        };
-
-        Box::new(f)
     }
 
-    pub fn ui_attempt_move_fn(&self) -> Box<SelectionFn> {
-        let mut app_state = self.clone();
-
-        if !app_state.is_started() || app_state.is_finished() {
-            let f = |_: Option<(usize, usize)>| {};
-            return Box::new(f);
+    pub fn ui_attempt_move(&self, to_selection: Option<(usize, usize)>, promote_to: Option<Piece>) {
+        if !self.is_started() || self.is_finished() {
+            return;
         }
 
-        let f = move |to_selection: Option<(usize, usize)>| {
-            if app_state.human_to_move() {
-                let candidate_move = match (
-                    app_state.ui_state.lock().unwrap().selected_square,
-                    to_selection,
-                ) {
-                    (Some((r1, f1)), Some((r2, f2))) => {
-                        let from_sq =
-                            Square::make_square(Rank::from_index(r1), File::from_index(f1));
-                        let to_sq = Square::make_square(Rank::from_index(r2), File::from_index(f2));
-                        // TODO: handle promotion
-                        Some(ChessMove::new(from_sq, to_sq, None))
-                    }
-                    _ => None,
-                };
-
-                if let Some(candidate_move) = candidate_move {
-                    println!("cm: {:?}", candidate_move);
-                    app_state.make_move(candidate_move);
+        if self.human_to_move() {
+            match (self.ui_state.lock().unwrap().selected_square, to_selection) {
+                (Some((r1, f1)), Some((r2, f2))) => {
+                    let from_sq = Square::make_square(Rank::from_index(r1), File::from_index(f1));
+                    let to_sq = Square::make_square(Rank::from_index(r2), File::from_index(f2));
+                    self.make_move(ChessMove::new(from_sq, to_sq, promote_to));
                 }
-            }
+                _ => {}
+            };
+        }
 
-            app_state.ui_set_selected_square(None);
-        };
-
-        Box::new(f)
+        self.ui_select_square(None);
     }
 
     pub fn ui_selected_square(&self) -> Option<(usize, usize)> {
         self.ui_state.lock().unwrap().selected_square
-    }
-
-    pub fn ui_set_selected_square(&mut self, selection: Option<(usize, usize)>) {
-        self.ui_state.lock().unwrap().selected_square = selection;
     }
 }
 
@@ -235,7 +209,6 @@ fn run_computer(app_state: AppState, f: Arc<Box<MoveFunction>>, color: Color) {
     loop {
         let game = app_state.game();
         if app_state.is_finished() || !app_state.is_started() {
-            println!("breaking");
             break;
         }
 
@@ -249,7 +222,7 @@ fn run_computer(app_state: AppState, f: Arc<Box<MoveFunction>>, color: Color) {
         }
 
         if let Some(m) = f(&game) {
-            thread::sleep(std::time::Duration::from_millis(1_000));
+            thread::sleep(std::time::Duration::from_millis(100));
             app_state.make_move(m);
         } else {
             app_state.resign(color);
