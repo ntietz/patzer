@@ -32,17 +32,14 @@ impl ChessBoard {
 
 impl Widget for ChessBoard {
     fn ui(mut self, ui: &mut egui::Ui) -> egui::Response {
-        let square_min_size = 50.0;
+        let square_min_size = 100.0;
 
         ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
 
-        let (id, rect) =
-            ui.allocate_space(egui::vec2(8.0 * square_min_size, 8.0 * square_min_size));
-        let response = ui.interact(rect, id, egui::Sense::click_and_drag());
-
-        if response.clicked() {
-            println!("clicked the board");
-        }
+        let (rect, response) = ui.allocate_exact_size(
+            egui::vec2(8.0 * square_min_size, 8.0 * square_min_size),
+            egui::Sense::click_and_drag(),
+        );
 
         let x_range = rect.x_range();
         let y_range = rect.y_range();
@@ -95,7 +92,7 @@ impl ChessBoard {
 
         let piece = self.board.piece_on(square);
         let color = self.board.color_on(square);
-        let light = (rank_idx + file_idx) % 2 == 0;
+        let light = (rank_idx + file_idx) % 2 == 1;
 
         if self.square_clicked(response, &rect) {
             self.handle_click(rank_idx, file_idx);
@@ -124,14 +121,14 @@ impl ChessBoard {
                 rect.center(),
                 egui::Align2::CENTER_CENTER,
                 color_symbol,
-                egui::FontId::proportional(30.0),
+                egui::FontId::proportional(60.0),
                 text_color,
             );
             painter.text(
                 rect.center(),
                 egui::Align2::CENTER_CENTER,
                 line_symbol,
-                egui::FontId::proportional(30.0),
+                egui::FontId::proportional(60.0),
                 egui::Color32::BLACK,
             );
         }
@@ -145,19 +142,15 @@ impl ChessBoard {
     }
 
     fn handle_click(&mut self, rank: usize, file: usize) {
-        println!("clicked square {} {}", rank, file);
-
         match self.selected_square {
             None => {
-                println!("setting selected square");
                 (self.select_fn)(Some((rank, file)));
             }
             Some((r2, f2)) if r2 != rank || f2 != file => {
-                println!("attempting move");
+                // TODO: check for possible promotion and, if so, open the promotion dialogue
                 (self.attempt_move_fn)(Some((rank, file)));
             }
             _ => {
-                println!("clearing selected square");
                 (self.select_fn)(None);
             }
         }

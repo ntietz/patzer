@@ -3,7 +3,7 @@ use crate::player::{MoveFunction, Player};
 use crate::strategies::random_move;
 use crate::ui_state::UiState;
 use crate::widget::SelectionFn;
-use chess::{Board, ChessMove, Color, File, Game, Rank, Square};
+use chess::{Board, ChessMove, Color, File, Game, GameResult, Rank, Square};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::thread::JoinHandle;
@@ -16,8 +16,7 @@ pub struct AppState {
     white: Arc<Mutex<Player>>,
     black: Arc<Mutex<Player>>,
 
-    white_handle: Arc<Mutex<Option<JoinHandle<()>>>>,
-    black_handle: Arc<Mutex<Option<JoinHandle<()>>>>,
+    handles: Arc<Mutex<Vec<JoinHandle<()>>>>,
 }
 
 impl AppState {
@@ -31,13 +30,53 @@ impl AppState {
             ui_state: Arc::new(Mutex::new(UiState::default())),
             white: Arc::new(Mutex::new(white)),
             black: Arc::new(Mutex::new(black)),
-            white_handle: Arc::new(Mutex::new(None)),
-            black_handle: Arc::new(Mutex::new(None)),
+            handles: Arc::new(Mutex::new(vec![])),
         }
     }
 
     pub fn game(&self) -> Game {
         self.game_state.lock().unwrap().game.clone()
+    }
+
+    pub fn is_started(&self) -> bool {
+        self.game_state.lock().unwrap().started
+    }
+
+    pub fn is_finished(&self) -> bool {
+        self.game_state.lock().unwrap().game.result().is_some()
+    }
+
+    pub fn start_game(&self) {
+        self.game_state.lock().unwrap().started = true;
+        self.start_computer_players();
+    }
+
+    pub fn status_message(&self) -> &'static str {
+        let game_state = self.game_state.lock().unwrap();
+
+        if !game_state.started {
+            "Not started"
+        } else if let Some(result) = game_state.game.result() {
+            match result {
+                GameResult::WhiteCheckmates => "White wins (checkmate)",
+                GameResult::BlackResigns => "White wins (black resigned)",
+                GameResult::BlackCheckmates => "Black wins (checkmate)",
+                GameResult::WhiteResigns => "Black wins (white resigned)",
+                GameResult::Stalemate => "Draw by stalemate",
+                GameResult::DrawDeclared => "Draw declared",
+                GameResult::DrawAccepted => "Draw by agreement",
+            }
+        } else {
+            "In progress"
+        }
+    }
+
+    pub fn set_white_player(&self, player: Player) {
+        (*self.white.lock().unwrap()) = player;
+    }
+
+    pub fn set_black_player(&self, player: Player) {
+        (*self.black.lock().unwrap()) = player;
     }
 
     pub fn player_names(&self) -> (String, String) {
@@ -76,12 +115,33 @@ impl AppState {
         }
     }
 
-    pub fn start_computer_players(&mut self) {
+    pub fn reset_game(&mut self) {
+        {
+            let mut game_state = self.game_state.lock().unwrap();
+            let mut ui_state = self.ui_state.lock().unwrap();
+
+            let white = self.white.lock().unwrap();
+            let black = self.black.lock().unwrap();
+
+            *game_state = GameState::new(white.name(), black.name());
+            *ui_state = UiState::default();
+        } // release locks before we wait for the threads to halt
+
+        for handle in self.handles.lock().unwrap().drain(0..) {
+            handle
+                .join()
+                .expect("Error waiting for computer opponent to conclude");
+        }
+    }
+
+    fn start_computer_players(&self) {
         let white_player = self.white.lock().unwrap().clone();
         let state = self.clone();
         let color = Color::White;
 
-        *self.white_handle.lock().unwrap() = Some(std::thread::spawn(move || {
+        let mut handles = self.handles.lock().unwrap();
+
+        handles.push(std::thread::spawn(move || {
             let move_fn = match white_player.move_function() {
                 Some(f) => f,
                 None => return,
@@ -94,7 +154,7 @@ impl AppState {
         let state = self.clone();
         let color = Color::Black;
 
-        *self.black_handle.lock().unwrap() = Some(std::thread::spawn(move || {
+        handles.push(std::thread::spawn(move || {
             let move_fn = match black_player.move_function() {
                 Some(f) => f,
                 None => return,
@@ -107,6 +167,11 @@ impl AppState {
     pub fn ui_select_fn(&self) -> Box<SelectionFn> {
         let mut app_state = self.clone();
 
+        if !app_state.is_started() || app_state.is_finished() {
+            let f = |_: Option<(usize, usize)>| {};
+            return Box::new(f);
+        }
+
         let f = move |selection: Option<(usize, usize)>| {
             app_state.ui_set_selected_square(selection);
             println!("s: {:?}", selection);
@@ -117,6 +182,11 @@ impl AppState {
 
     pub fn ui_attempt_move_fn(&self) -> Box<SelectionFn> {
         let mut app_state = self.clone();
+
+        if !app_state.is_started() || app_state.is_finished() {
+            let f = |_: Option<(usize, usize)>| {};
+            return Box::new(f);
+        }
 
         let f = move |to_selection: Option<(usize, usize)>| {
             if app_state.human_to_move() {
@@ -164,7 +234,8 @@ impl Default for AppState {
 fn run_computer(app_state: AppState, f: Arc<Box<MoveFunction>>, color: Color) {
     loop {
         let game = app_state.game();
-        if game.result().is_some() {
+        if app_state.is_finished() || !app_state.is_started() {
+            println!("breaking");
             break;
         }
 

@@ -6,7 +6,8 @@ use patzer::windows::PatzerApp;
 pub fn main() {
     let options = eframe::NativeOptions {
         default_theme: eframe::Theme::Light,
-        min_window_size: Some(egui::Vec2::new(500.0, 500.0)),
+        // TODO: figure out why autosizing doesn't size up
+        min_window_size: Some(egui::Vec2::new(1_200.0, 1_000.0)),
         ..Default::default()
     };
 
