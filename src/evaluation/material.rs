@@ -23,7 +23,8 @@ fn material_for_color(board: &Board, color: Color) -> Score {
     let rook_bitboard = board.pieces(Piece::Rook) & color_bitboard;
     let queen_bitboard = board.pieces(Piece::Queen) & color_bitboard;
 
-    let checkmate = if fast_status(board) == BoardStatus::Checkmate && board.side_to_move() != color {
+    let checkmate = if fast_status(board) == BoardStatus::Checkmate && board.side_to_move() != color
+    {
         1.0
     } else {
         0.0
@@ -45,7 +46,7 @@ fn material_for_color(board: &Board, color: Color) -> Score {
 fn fast_status(board: &Board) -> BoardStatus {
     let mut moves = MoveGen::new_legal(board);
 
-    if let Some(_) = moves.next() {
+    if moves.next().is_some() {
         BoardStatus::Ongoing
     } else if board.checkers() == &chess::EMPTY {
         BoardStatus::Stalemate

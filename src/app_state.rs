@@ -1,6 +1,6 @@
 use crate::game_state::GameState;
 use crate::player::{MoveFunction, Player};
-use crate::strategies::random_move;
+use crate::strategies::{first_legal_move, hope_chess};
 use crate::ui_state::UiState;
 use chess::{Board, ChessMove, Color, File, Game, GameResult, Piece, Rank, Square};
 use std::sync::{Arc, Mutex};
@@ -20,8 +20,8 @@ pub struct AppState {
 
 impl AppState {
     pub fn new() -> Self {
-        let white = Player::Human("Human".into());
-        let black = Player::Computer("Random moves".into(), Arc::new(Box::new(random_move)));
+        let white = Player::Computer("Hope".into(), Arc::new(Box::new(hope_chess)));
+        let black = Player::Computer("First legal".into(), Arc::new(Box::new(first_legal_move)));
 
         AppState {
             game_state: Arc::new(Mutex::new(GameState::new(white.name(), black.name()))),

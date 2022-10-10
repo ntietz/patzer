@@ -1,8 +1,6 @@
-use std::collections::{HashSet, HashMap};
+use crate::evaluation::{material_count, Score};
 use chess::{Board, ChessMove, Color, Game, MoveGen};
 use rand::seq::IteratorRandom;
-use crate::evaluation::{material_count, Score};
-
 
 pub fn first_legal_move(game: &Game) -> Option<ChessMove> {
     let mut moves = MoveGen::new_legal(&game.current_position());
@@ -21,41 +19,48 @@ pub fn random_move(game: &Game) -> Option<ChessMove> {
 /// This is obviously not a great strategy, but mirrors what some humans do and
 /// could be interesting to explore as a heuristic for pruning trees or
 /// expanding them at the edges.
-pub fn greedy(game: &Game) -> Option<ChessMove> {
-    let sign = if game.side_to_move() == Color::White { 1.0 } else { 1.0 };
-    let (score, m) = greedy_helper(game.current_position(), sign, 4);
+pub fn hope_chess(game: &Game) -> Option<ChessMove> {
+    let sign = if game.side_to_move() == Color::White {
+        1.0
+    } else {
+        -1.0
+    };
+    let (score, _, m) = hope_chess_helper_iterative(game.current_position(), sign, 4);
     println!("Score: {}", score);
     m
 }
 
-fn greedy_helper_iterative(initial_pos: Board, sign: f32, depth: u8) -> (Score, Option<ChessMove>) {
-    let moves = MoveGen::new_legal(&initial_pos);
-
-    let max = -1.0 * sign * 200.0;
-
-    let boards: HashSet<Board> = HashSet::new();
-
-    for depth in (0..depth).rev() {
-    }
-
-    (max, None)
-}
-
-fn greedy_helper(board: Board, sign: f32, depth: u8) -> (Score, Option<ChessMove>) {
+fn hope_chess_helper_iterative(
+    board: Board,
+    sign: f32,
+    depth: u8,
+) -> (Score, u8, Option<ChessMove>) {
     if depth == 0 {
-        return (material_count(board) * sign, None);
+        return (material_count(board) * sign, 0, None);
     }
 
     let moves = MoveGen::new_legal(&board);
-    moves.map(|m| -> (Score, Option<ChessMove>) {
-        let board1 = board.make_move_new(m);
-        let board2 = null_move_or_random(board1);
+    let mut max = -200.0;
+    let mut remaining = depth;
+    let mut choice = None;
 
-        match board2 {
-            None => (material_count(board1) * sign, Some(m)),
-            Some(board) => (depth as f32 *10.0 + greedy_helper(board, sign, depth-1).0, Some(m))
+    for m in moves {
+        let board = board.make_move_new(m);
+        let (score, d) = match null_move_or_random(board) {
+            Some(board) => {
+                let (score, d, _) = hope_chess_helper_iterative(board, sign, depth - 1);
+                (score, d)
+            }
+            None => (material_count(board) * sign, depth),
+        };
+        if (max < 200.0 && score > max) || (score >= 200.0 && d > remaining) {
+            max = score;
+            remaining = d;
+            choice = Some(m);
         }
-    }).max_by(|a, b| a.0.partial_cmp(&b.0).unwrap()).unwrap_or((-1.0*sign*200.0, None))
+    }
+
+    (max, remaining, choice)
 }
 
 fn null_move_or_random(board: Board) -> Option<Board> {
@@ -63,10 +68,7 @@ fn null_move_or_random(board: Board) -> Option<Board> {
         Some(b) => Some(b),
         None => {
             let mut moves = MoveGen::new_legal(&board);
-            match moves.next() {
-                Some(m) => Some(board.make_move_new(m)),
-                None => None,
-            }
+            moves.next().map(|m| board.make_move_new(m))
         }
     }
 }
@@ -75,26 +77,53 @@ pub fn minimax(_game: &Game) -> Option<ChessMove> {
     todo!("implement minimax")
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use chess::Square;
 
     #[test]
-    fn greedy_plays_e4_on_depth_4() {
-        // since greedy looks for what gets it the highest score and ignores
+    fn hope_chess_plays_e4_on_depth_4() {
+        // since hope_chess looks for what gets it the highest score and ignores
         // opponent moves, if you let it look at a high enough depth it should
         // find Scholar's Mate. so the first move should be 1. e4.
 
         let game = chess::Game::new();
-        let candidate = greedy(&game);
+        let candidate = hope_chess(&game);
 
-        let expected = ChessMove::new(Square::E2, Square::E4, None);
+        let expected = vec![
+            ChessMove::new(Square::E2, Square::E4, None),
+            ChessMove::new(Square::E2, Square::E3, None),
+        ];
 
         assert!(candidate.is_some());
         for candidate in candidate {
-            assert_eq!(expected, candidate);
+            assert!(expected.contains(&candidate));
+        }
+    }
+
+    #[test]
+    fn hope_chess_mates_in_1() {
+        let mut game = chess::Game::new();
+        game.make_move(ChessMove::from_san(&game.current_position(), "e4").unwrap());
+        game.make_move(ChessMove::from_san(&game.current_position(), "a6").unwrap());
+        game.make_move(ChessMove::from_san(&game.current_position(), "Qh5").unwrap());
+        game.make_move(ChessMove::from_san(&game.current_position(), "a5").unwrap());
+        game.make_move(ChessMove::from_san(&game.current_position(), "Bc4").unwrap());
+        game.make_move(ChessMove::from_san(&game.current_position(), "a4").unwrap());
+
+        let expected = vec![
+            ChessMove::from_san(&game.current_position(), "Qxf7").unwrap(),
+            ChessMove::from_san(&game.current_position(), "Bxf7").unwrap(),
+        ];
+
+        let candidate = hope_chess(&game);
+
+        assert!(candidate.is_some());
+        for candidate in candidate {
+            println!("{:#?}", expected);
+            println!("{}", candidate);
+            assert!(expected.contains(&candidate));
         }
     }
 }
