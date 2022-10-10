@@ -1,9 +1,10 @@
-use chess::{Board, BoardStatus, Color, Piece};
+use chess::{Board, BoardStatus, Color, MoveGen, Piece};
 
 use super::types::Score;
 
 pub fn material_count(board: Board) -> Score {
-    material_for_color(&board, Color::White) - material_for_color(&board, Color::Black)
+    let score = material_for_color(&board, Color::White) - material_for_color(&board, Color::Black);
+    score.clamp(-1.0 * CHECKMATE_VALUE, CHECKMATE_VALUE)
 }
 
 const PAWN_VALUE: f32 = 1.0;
@@ -22,7 +23,7 @@ fn material_for_color(board: &Board, color: Color) -> Score {
     let rook_bitboard = board.pieces(Piece::Rook) & color_bitboard;
     let queen_bitboard = board.pieces(Piece::Queen) & color_bitboard;
 
-    let checkmate = if board.status() == BoardStatus::Checkmate && board.side_to_move() != color {
+    let checkmate = if fast_status(board) == BoardStatus::Checkmate && board.side_to_move() != color {
         1.0
     } else {
         0.0
@@ -38,6 +39,19 @@ fn material_for_color(board: &Board, color: Color) -> Score {
         + rook_bitboard.popcnt() as f32 * ROOK_VALUE
         + queen_bitboard.popcnt() as f32 * QUEEN_VALUE
         + checkmate * CHECKMATE_VALUE
+}
+
+/// An optimized version of `board.status()`.
+fn fast_status(board: &Board) -> BoardStatus {
+    let mut moves = MoveGen::new_legal(board);
+
+    if let Some(_) = moves.next() {
+        BoardStatus::Ongoing
+    } else if board.checkers() == &chess::EMPTY {
+        BoardStatus::Stalemate
+    } else {
+        BoardStatus::Checkmate
+    }
 }
 
 #[cfg(test)]
