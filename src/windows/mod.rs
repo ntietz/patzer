@@ -3,7 +3,7 @@ use egui::{menu, Ui};
 use std::sync::Arc;
 
 use crate::app_state::AppState;
-use crate::strategies::{first_legal_move, random_move};
+use crate::strategies::{first_legal_move, hope_chess, random_move};
 use crate::widget::ChessBoard;
 
 use crate::player::Player;
@@ -99,6 +99,11 @@ fn display_menu(ui: &mut Ui, state: &mut AppState) {
                         "First legal move".into(),
                         Arc::new(Box::new(first_legal_move)),
                     ));
+                } else if ui.button("Hope").clicked() {
+                    state.set_white_player(Player::Computer(
+                        "Hope chess".into(),
+                        Arc::new(Box::new(hope_chess)),
+                    ));
                 }
             });
 
@@ -114,6 +119,11 @@ fn display_menu(ui: &mut Ui, state: &mut AppState) {
                     state.set_black_player(Player::Computer(
                         "First legal move".into(),
                         Arc::new(Box::new(first_legal_move)),
+                    ));
+                } else if ui.button("Hope").clicked() {
+                    state.set_black_player(Player::Computer(
+                        "Hope chess".into(),
+                        Arc::new(Box::new(hope_chess)),
                     ));
                 }
             });

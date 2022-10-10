@@ -14,3 +14,8 @@ Cargo.lock
 
 /target
 /Cargo.lock
+
+
+# Profiling data
+perf.data*
+flamegraph.svg
