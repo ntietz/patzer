@@ -3,7 +3,7 @@ use egui::{menu, Ui};
 use std::sync::Arc;
 
 use crate::app_state::AppState;
-use crate::strategies::{first_legal_move, hope_chess, random_move};
+use crate::strategies::{alpha_beta, first_legal_move, hope_chess, random_move};
 use crate::widget::ChessBoard;
 
 use crate::player::Player;
@@ -104,6 +104,11 @@ fn display_menu(ui: &mut Ui, state: &mut AppState) {
                         "Hope chess".into(),
                         Arc::new(Box::new(hope_chess)),
                     ));
+                } else if ui.button("Negamax alpha-beta").clicked() {
+                    state.set_white_player(Player::Computer(
+                        "Negamax alpha-beta".into(),
+                        Arc::new(Box::new(|g| alpha_beta(&g.current_position()))),
+                    ));
                 }
             });
 
@@ -124,6 +129,11 @@ fn display_menu(ui: &mut Ui, state: &mut AppState) {
                     state.set_black_player(Player::Computer(
                         "Hope chess".into(),
                         Arc::new(Box::new(hope_chess)),
+                    ));
+                } else if ui.button("Negamax alpha-beta").clicked() {
+                    state.set_black_player(Player::Computer(
+                        "Negamax alpha-beta".into(),
+                        Arc::new(Box::new(|g| alpha_beta(&g.current_position()))),
                     ));
                 }
             });

@@ -15,6 +15,10 @@ const QUEEN_VALUE: f32 = 9.0;
 const CHECKMATE_VALUE: f32 = 200.0;
 
 fn material_for_color(board: &Board, color: Color) -> Score {
+    if board.status() == BoardStatus::Stalemate {
+        return 0.0;
+    }
+
     let color_bitboard = board.color_combined(color);
 
     let pawn_bitboard = board.pieces(Piece::Pawn) & color_bitboard;
@@ -30,9 +34,15 @@ fn material_for_color(board: &Board, color: Color) -> Score {
         0.0
     };
 
-    if board.status() == BoardStatus::Stalemate {
-        return 0.0;
-    }
+    let num_moves = if color != board.side_to_move() {
+        if let Some(b) = board.null_move() {
+            MoveGen::new_legal(&b).len()
+        } else {
+            0
+        }
+    } else {
+        MoveGen::new_legal(board).len()
+    };
 
     pawn_bitboard.popcnt() as f32 * PAWN_VALUE
         + bishop_bitboard.popcnt() as f32 * BISHOP_VALUE
@@ -40,6 +50,7 @@ fn material_for_color(board: &Board, color: Color) -> Score {
         + rook_bitboard.popcnt() as f32 * ROOK_VALUE
         + queen_bitboard.popcnt() as f32 * QUEEN_VALUE
         + checkmate * CHECKMATE_VALUE
+        + num_moves as f32 * 0.1
 }
 
 /// An optimized version of `board.status()`.
