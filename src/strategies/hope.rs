@@ -1,5 +1,5 @@
-use chess::{Board, ChessMove, Color, Game, MoveGen};
 use crate::evaluation::{material_count, Score};
+use chess::{Board, ChessMove, Color, Game, MoveGen};
 
 /// A simple strategy that ignores that our opponent can make moves and goes for
 /// anything we do that can get us more material.
@@ -60,7 +60,6 @@ fn null_move_or_random(board: Board) -> Option<Board> {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
