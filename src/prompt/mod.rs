@@ -39,9 +39,8 @@ mod tests {
         }
 
         for s in not_resignations {
-            assert_eq!(
-                is_resignation(s),
-                false,
+            assert!(
+                !is_resignation(s),
                 "should not be a resignation. input: {}",
                 s
             );

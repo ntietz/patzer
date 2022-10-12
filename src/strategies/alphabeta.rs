@@ -14,9 +14,9 @@ use std::ops::Neg;
 ///  - Principal variation search, to seed the next round of search
 ///  - Quiescence search, to avoid the horizon effect
 pub fn alpha_beta(board: &Board) -> Option<ChessMove> {
-    let moves = MoveGen::new_legal(&board);
+    let moves = MoveGen::new_legal(board);
 
-    let mut best_score = -400_00;
+    let mut best_score = -40_000;
     let mut best_move = None;
 
     for m in moves {
@@ -25,7 +25,7 @@ pub fn alpha_beta(board: &Board) -> Option<ChessMove> {
             Color::White => -1,
             Color::Black => 1,
         };
-        let score = -alpha_beta_helper(board, -800_00, 800_00, -sign, 5);
+        let score = -alpha_beta_helper(board, -80_000, 80_000, -sign, 5);
 
         if score > best_score {
             best_score = score;
@@ -84,7 +84,7 @@ mod tests {
         ];
 
         assert!(candidate.is_some());
-        for candidate in candidate {
+        if let Some(candidate) = candidate {
             println!("{:#?}", expected);
             println!("{}", candidate);
             assert!(expected.contains(&candidate));

@@ -77,10 +77,10 @@ mod tests {
     fn recognizes_checkmate() {
         let board =
             Board::from_str("r3r1k1/pbq2pQ1/7p/1pp5/4n3/2B4P/PPP2PP1/R3R1K1 b - - 0 20").unwrap();
-        assert_eq!(evaluate(&board, Color::White, board.side_to_move()), 200_00);
+        assert_eq!(evaluate(&board, Color::White, board.side_to_move()), 20_000);
         assert_eq!(
             evaluate(&board, Color::Black, board.side_to_move()),
-            -200_00
+            -20_000
         );
     }
 
