@@ -15,6 +15,8 @@ pub fn evaluate(board: &Board, color: Color, to_move: Color) -> Score {
         BoardStatus::Checkmate => {
             if to_move != color {
                 return CHECKMATE_VALUE;
+            } else {
+                return -CHECKMATE_VALUE;
             }
         }
         BoardStatus::Ongoing => {}
