@@ -1,4 +1,4 @@
-use crate::evaluation::{material_count, Score};
+use crate::evaluation::{evaluate, Score};
 use chess::{Board, ChessMove, Color, MoveGen};
 use std::ops::Neg;
 
@@ -16,16 +16,16 @@ use std::ops::Neg;
 pub fn alpha_beta(board: &Board) -> Option<ChessMove> {
     let moves = MoveGen::new_legal(&board);
 
-    let mut best_score = f32::NEG_INFINITY;
+    let mut best_score = -400_00;
     let mut best_move = None;
 
     for m in moves {
         let board = board.make_move_new(m);
         let sign = match board.side_to_move() {
-            Color::White => -1.0,
-            Color::Black => 1.0,
+            Color::White => -1,
+            Color::Black => 1,
         };
-        let score = -alpha_beta_helper(board, f32::NEG_INFINITY, f32::INFINITY, -sign, 5);
+        let score = -alpha_beta_helper(board, -800_00, 800_00, -sign, 5);
 
         if score > best_score {
             best_score = score;
@@ -45,7 +45,8 @@ fn alpha_beta_helper(
     depth_left: u8,
 ) -> Score {
     if depth_left == 0 {
-        return sign * material_count(board);
+        let color = board.side_to_move();
+        return evaluate(&board, color, color);
     }
 
     let moves = MoveGen::new_legal(&board);
@@ -53,7 +54,7 @@ fn alpha_beta_helper(
     for m in moves {
         let board = board.make_move_new(m);
 
-        let score = -1.0 * alpha_beta_helper(board, -beta, -alpha, sign.neg(), depth_left - 1);
+        let score = -alpha_beta_helper(board, -beta, -alpha, sign.neg(), depth_left - 1);
 
         if score >= beta {
             return beta;
@@ -75,7 +76,18 @@ mod tests {
     #[test]
     fn ab_detects_smothered_mate() {
         let board = Board::from_str("2r4k/6pp/8/4N3/8/1Q6/B5PP/7K w - - 0 1").unwrap();
-        let _ = alpha_beta(&board);
-        assert!(false);
+        let candidate = alpha_beta(&board);
+
+        let expected = vec![
+            ChessMove::from_san(&board, "Qg8").unwrap(),
+            ChessMove::from_san(&board, "Ng6").unwrap(),
+        ];
+
+        assert!(candidate.is_some());
+        for candidate in candidate {
+            println!("{:#?}", expected);
+            println!("{}", candidate);
+            assert!(expected.contains(&candidate));
+        }
     }
 }
