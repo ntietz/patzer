@@ -19,18 +19,26 @@ pub fn alpha_beta(board: &Board) -> Option<ChessMove> {
     let mut best_score = -40_000;
     let mut best_move = None;
 
+    let mut alpha = -80_000;
+    let beta = 80_000;
+
     for m in moves {
         let board = board.make_move_new(m);
         let sign = match board.side_to_move() {
             Color::White => -1,
             Color::Black => 1,
         };
-        let score = -alpha_beta_helper(board, -80_000, 80_000, -sign, 5);
+        let score = -alpha_beta_helper(board, -beta, -alpha, -sign, 5);
 
         if score > best_score {
             best_score = score;
             best_move = Some(m);
         }
+
+        if score > alpha {
+            alpha = score;
+        }
+
         println!("move: {}, score: {}", m, score);
     }
 
