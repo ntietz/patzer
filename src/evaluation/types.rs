@@ -1,1 +1,1 @@
-pub type Score = f32;
+pub type Score = i64;
