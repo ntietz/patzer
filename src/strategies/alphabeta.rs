@@ -1,6 +1,5 @@
 use crate::evaluation::{evaluate, Score};
-use chess::{Board, ChessMove, Color, MoveGen};
-use std::ops::Neg;
+use chess::{Board, ChessMove, MoveGen};
 
 /// Basic implementation of alpha-beta pruning.
 /// More detail is available on the [CPW Alpha-Beta
@@ -24,11 +23,7 @@ pub fn alpha_beta(board: &Board) -> Option<ChessMove> {
 
     for m in moves {
         let board = board.make_move_new(m);
-        let sign = match board.side_to_move() {
-            Color::White => -1,
-            Color::Black => 1,
-        };
-        let score = -alpha_beta_helper(board, -beta, -alpha, -sign, 5);
+        let score = -alpha_beta_helper(board, -beta, -alpha, 5);
 
         if score > best_score {
             best_score = score;
@@ -49,7 +44,6 @@ fn alpha_beta_helper(
     board: Board,
     mut alpha: Score,
     beta: Score,
-    sign: Score,
     depth_left: u8,
 ) -> Score {
     if depth_left == 0 {
@@ -62,7 +56,7 @@ fn alpha_beta_helper(
     for m in moves {
         let board = board.make_move_new(m);
 
-        let score = -alpha_beta_helper(board, -beta, -alpha, sign.neg(), depth_left - 1);
+        let score = -alpha_beta_helper(board, -beta, -alpha, depth_left - 1);
 
         if score >= beta {
             return beta;
