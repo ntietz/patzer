@@ -40,12 +40,7 @@ pub fn alpha_beta(board: &Board) -> Option<ChessMove> {
     best_move
 }
 
-fn alpha_beta_helper(
-    board: Board,
-    mut alpha: Score,
-    beta: Score,
-    depth_left: u8,
-) -> Score {
+fn alpha_beta_helper(board: Board, mut alpha: Score, beta: Score, depth_left: u8) -> Score {
     if depth_left == 0 {
         let color = board.side_to_move();
         return evaluate(&board, color, color);
