@@ -48,6 +48,10 @@ impl TranspositionTable {
         self.transpositions.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.transpositions.is_empty()
+    }
+
     pub fn hits(&self) -> usize {
         self.num_hits
     }
@@ -74,5 +78,11 @@ impl TranspositionTable {
             self.num_misses += 1;
         }
         result
+    }
+}
+
+impl Default for TranspositionTable {
+    fn default() -> Self {
+        Self::new()
     }
 }
