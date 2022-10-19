@@ -1,4 +1,7 @@
-use crate::evaluation::{evaluate, Score};
+use crate::{
+    evaluation::{evaluate, Score},
+    transposition::{Evaluation, TranspositionTable},
+};
 use chess::{Board, ChessMove, MoveGen};
 
 /// Basic implementation of alpha-beta pruning.
@@ -13,7 +16,10 @@ use chess::{Board, ChessMove, MoveGen};
 ///  - Principal variation search, to seed the next round of search
 ///  - Quiescence search, to avoid the horizon effect
 pub fn alpha_beta(board: &Board) -> Option<ChessMove> {
+    // TODO: add depth argument
     let moves = MoveGen::new_legal(board);
+
+    let mut transposition_table = TranspositionTable::new();
 
     let mut best_score = -40_000;
     let mut best_move = None;
@@ -23,7 +29,7 @@ pub fn alpha_beta(board: &Board) -> Option<ChessMove> {
 
     for m in moves {
         let board = board.make_move_new(m);
-        let score = -alpha_beta_helper(board, -beta, -alpha, 5);
+        let score = -alpha_beta_helper(board, -beta, -alpha, 5, &mut transposition_table);
 
         if score > best_score {
             best_score = score;
@@ -34,16 +40,57 @@ pub fn alpha_beta(board: &Board) -> Option<ChessMove> {
             alpha = score;
         }
 
+        println!(
+            "transposition table size/hits/misses: {} / {} / {}",
+            transposition_table.len(),
+            transposition_table.hits(),
+            transposition_table.misses()
+        );
+        println!(
+            "{}",
+            transposition_table.misses() as i64 - transposition_table.len() as i64
+        );
         println!("move: {}, score: {}", m, score);
     }
 
     best_move
 }
 
-fn alpha_beta_helper(board: Board, mut alpha: Score, beta: Score, depth_left: u8) -> Score {
+fn alpha_beta_helper(
+    board: Board,
+    mut alpha: Score,
+    mut beta: Score,
+    depth_left: u8,
+    transposition_table: &mut TranspositionTable,
+) -> Score {
+    let hash = board.get_hash();
+
+    // Reuse results if they've been computed before
+    if let Some(entry) = transposition_table.retrieve(hash) {
+        if entry.depth == depth_left {
+            let score = match entry.eval {
+                Evaluation::Exact(score) => return score,
+                Evaluation::Beta(score) => {
+                    alpha = alpha.min(score);
+                    score
+                }
+                Evaluation::Alpha(score) => {
+                    beta = beta.min(score);
+                    score
+                }
+            };
+
+            if alpha >= beta {
+                return score;
+            }
+        }
+    }
+
     if depth_left == 0 {
         let color = board.side_to_move();
-        return evaluate(&board, color, color);
+        let score = evaluate(&board, color, color);
+        transposition_table.store(hash, depth_left, Evaluation::Exact(score));
+        return score;
     }
 
     let moves = MoveGen::new_legal(&board);
@@ -51,9 +98,10 @@ fn alpha_beta_helper(board: Board, mut alpha: Score, beta: Score, depth_left: u8
     for m in moves {
         let board = board.make_move_new(m);
 
-        let score = -alpha_beta_helper(board, -beta, -alpha, depth_left - 1);
+        let score = -alpha_beta_helper(board, -beta, -alpha, depth_left - 1, transposition_table);
 
         if score >= beta {
+            transposition_table.store(hash, depth_left, Evaluation::Beta(beta));
             return beta;
         }
         if score > alpha {
@@ -61,6 +109,7 @@ fn alpha_beta_helper(board: Board, mut alpha: Score, beta: Score, depth_left: u8
         }
     }
 
+    transposition_table.store(hash, depth_left, Evaluation::Alpha(alpha));
     alpha
 }
 
