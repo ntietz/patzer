@@ -5,6 +5,7 @@ pub mod player;
 pub mod prompt;
 pub mod strategies;
 pub mod theme;
+pub mod transposition;
 pub mod ui_state;
 pub mod widget;
 pub mod windows;

@@ -23,7 +23,7 @@ impl AppState {
         let white = Player::Human("Human".into());
         let black = Player::Computer(
             "Negamax alpha-beta ".into(),
-            Arc::new(Box::new(|g| alpha_beta(&g.current_position()))),
+            Arc::new(Box::new(|g| alpha_beta(&g.current_position(), 6))),
         );
 
         AppState {
