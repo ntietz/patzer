@@ -102,7 +102,7 @@ fn display_menu(ui: &mut Ui, state: &mut AppState) {
                 } else if ui.button("Negamax alpha-beta").clicked() {
                     state.set_white_player(Player::Computer(
                         "Negamax alpha-beta".into(),
-                        Arc::new(Box::new(|g| alpha_beta(&g.current_position()))),
+                        Arc::new(Box::new(|g| alpha_beta(&g.current_position(), 6))),
                     ));
                 }
             });
@@ -123,7 +123,7 @@ fn display_menu(ui: &mut Ui, state: &mut AppState) {
                 } else if ui.button("Negamax alpha-beta").clicked() {
                     state.set_black_player(Player::Computer(
                         "Negamax alpha-beta".into(),
-                        Arc::new(Box::new(|g| alpha_beta(&g.current_position()))),
+                        Arc::new(Box::new(|g| alpha_beta(&g.current_position(), 6))),
                     ));
                 }
             });
