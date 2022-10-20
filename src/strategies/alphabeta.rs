@@ -3,6 +3,7 @@ use crate::{
     transposition::{Evaluation, TranspositionTable},
 };
 use chess::{Board, ChessMove, MoveGen};
+use rand::seq::SliceRandom;
 
 /// Basic implementation of alpha-beta pruning.
 /// More detail is available on the [CPW Alpha-Beta
@@ -17,7 +18,6 @@ use chess::{Board, ChessMove, MoveGen};
 ///  - Quiescence search, to avoid the horizon effect
 pub fn alpha_beta(board: &Board) -> Option<ChessMove> {
     // TODO: add depth argument
-    let moves = MoveGen::new_legal(board);
 
     let mut transposition_table = TranspositionTable::new();
 
@@ -27,7 +27,7 @@ pub fn alpha_beta(board: &Board) -> Option<ChessMove> {
     let mut alpha = -80_000;
     let beta = 80_000;
 
-    for m in moves {
+    for m in current_moves(board) {
         let board = board.make_move_new(m);
         let score = -alpha_beta_helper(board, -beta, -alpha, 5, &mut transposition_table);
 
@@ -93,9 +93,7 @@ fn alpha_beta_helper(
         return score;
     }
 
-    let moves = MoveGen::new_legal(&board);
-
-    for m in moves {
+    for m in current_moves(&board) {
         let board = board.make_move_new(m);
 
         let score = -alpha_beta_helper(board, -beta, -alpha, depth_left - 1, transposition_table);
@@ -111,6 +109,17 @@ fn alpha_beta_helper(
 
     transposition_table.store(hash, depth_left, Evaluation::Alpha(alpha));
     alpha
+}
+
+/// Generates the current moves for the board in a heuristically ordered fashion.
+///
+/// Right now the heuristic is "just shuffle them in place randomly," which
+/// is at least moderately better than just ignoring the order entirely.
+fn current_moves(board: &Board) -> Vec<ChessMove> {
+    let mut rng = &mut rand::thread_rng();
+    let mut moves: Vec<ChessMove> = MoveGen::new_legal(board).collect();
+    moves.shuffle(&mut rng);
+    moves
 }
 
 #[cfg(test)]
