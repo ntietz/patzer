@@ -81,9 +81,11 @@ impl TranspositionTable {
     pub fn retrieve(&mut self, hash: Hash) -> Option<TableEntry> {
         let position = hash as usize % self.size;
 
-        let result = self.transpositions.get(position).unwrap().filter(|p| {
-            p.hash == hash
-        });
+        let result = self
+            .transpositions
+            .get(position)
+            .unwrap()
+            .filter(|p| p.hash == hash);
 
         if result.is_some() {
             self.num_hits += 1;
