@@ -16,9 +16,7 @@ use rand::seq::SliceRandom;
 /// Other improvements to come:
 ///  - Principal variation search, to seed the next round of search
 ///  - Quiescence search, to avoid the horizon effect
-pub fn alpha_beta(board: &Board) -> Option<ChessMove> {
-    // TODO: add depth argument
-
+pub fn alpha_beta(board: &Board, depth: u8) -> Option<ChessMove> {
     let mut transposition_table = TranspositionTable::new();
 
     let mut best_score = -40_000;
@@ -29,7 +27,7 @@ pub fn alpha_beta(board: &Board) -> Option<ChessMove> {
 
     for m in current_moves(board) {
         let board = board.make_move_new(m);
-        let score = -alpha_beta_helper(board, -beta, -alpha, 5, &mut transposition_table);
+        let score = -alpha_beta_helper(board, -beta, -alpha, depth - 1, &mut transposition_table);
 
         if score > best_score {
             best_score = score;
