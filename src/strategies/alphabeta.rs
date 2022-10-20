@@ -129,7 +129,7 @@ mod tests {
     #[test]
     fn ab_detects_smothered_mate() {
         let board = Board::from_str("2r4k/6pp/8/4N3/8/1Q6/B5PP/7K w - - 0 1").unwrap();
-        let candidate = alpha_beta(&board);
+        let candidate = alpha_beta(&board, 6);
 
         let expected = vec![
             ChessMove::from_san(&board, "Qg8").unwrap(),
