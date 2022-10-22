@@ -16,7 +16,7 @@ pub fn evaluate(board: &Board, color: Color, to_move: Color) -> Score {
         if board.checkers().popcnt() == 0 {
             return 0;
         } else if to_move != color {
-                return CHECKMATE_VALUE;
+            return CHECKMATE_VALUE;
         } else {
             return -CHECKMATE_VALUE;
         }
