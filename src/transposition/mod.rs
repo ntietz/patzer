@@ -27,24 +27,17 @@ pub enum Evaluation {
 }
 
 pub struct TranspositionTable {
-    //transpositions: HashMap<Hash, TableEntry>,
     transpositions: Vec<Option<TableEntry>>,
     size: usize,
-    num_hits: usize,
-    num_misses: usize,
 }
 
 impl TranspositionTable {
     pub fn new() -> Self {
         let size = 1_000_000;
         let transpositions = vec![None; size];
-        let num_hits = 0;
-        let num_misses = 0;
         TranspositionTable {
             transpositions,
             size,
-            num_hits,
-            num_misses,
         }
     }
 
@@ -54,14 +47,6 @@ impl TranspositionTable {
 
     pub fn is_empty(&self) -> bool {
         self.transpositions.is_empty()
-    }
-
-    pub fn hits(&self) -> usize {
-        self.num_hits
-    }
-
-    pub fn misses(&self) -> usize {
-        self.num_misses
     }
 
     pub fn store(&mut self, hash: Hash, depth: u8, eval: Evaluation) {
@@ -86,12 +71,6 @@ impl TranspositionTable {
             .get(position)
             .unwrap()
             .filter(|p| p.hash == hash);
-
-        if result.is_some() {
-            self.num_hits += 1;
-        } else {
-            self.num_misses += 1;
-        }
 
         result
     }

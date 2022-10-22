@@ -38,16 +38,6 @@ pub fn alpha_beta(board: &Board, depth: u8) -> Option<ChessMove> {
             alpha = score;
         }
 
-        println!(
-            "transposition table size/hits/misses: {} / {} / {}",
-            transposition_table.len(),
-            transposition_table.hits(),
-            transposition_table.misses()
-        );
-        println!(
-            "{}",
-            transposition_table.misses() as i64 - transposition_table.len() as i64
-        );
         println!("move: {}, score: {}", m, score);
     }
 
