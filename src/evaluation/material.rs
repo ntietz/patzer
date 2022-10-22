@@ -1,4 +1,4 @@
-use chess::{Board, BoardStatus, Color, MoveGen, Piece};
+use chess::{Board, Color, MoveGen, Piece};
 
 use super::types::Score;
 
@@ -10,16 +10,18 @@ const QUEEN_VALUE: Score = 900;
 const CHECKMATE_VALUE: Score = 20_000;
 
 pub fn evaluate(board: &Board, color: Color, to_move: Color) -> Score {
-    match board.status() {
-        BoardStatus::Stalemate => return 0,
-        BoardStatus::Checkmate => {
+    let moves = MoveGen::new_legal(board);
+    let num_moves = moves.len();
+    if num_moves == 0 {
+        if board.checkers().popcnt() == 0 {
+            return 0;
+        } else {
             if to_move != color {
                 return CHECKMATE_VALUE;
             } else {
                 return -CHECKMATE_VALUE;
             }
         }
-        BoardStatus::Ongoing => {}
     }
 
     let other_color = match color {

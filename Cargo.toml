@@ -8,6 +8,7 @@ edition = "2021"
 [profile.release]
 opt-level = 3
 lto = "fat"
+debug = true
 
 [profile.dev]
 opt-level = 3
@@ -17,6 +18,7 @@ lto = "thin"
 
 # i don't want to reinvent move generation right now kthx
 chess = "3.2.0"
+cozy-chess = "0.3.1"
 
 # non-determinism makes things interesting
 rand = "0.8.5"
