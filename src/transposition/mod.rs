@@ -1,4 +1,4 @@
-use chess::ChessMove;
+use cozy_chess::Move;
 
 use crate::evaluation::Score;
 
@@ -16,7 +16,7 @@ pub struct TableEntry {
     pub eval: Evaluation,
 
     /// The best move or refutation of this position
-    pub following_move: Option<ChessMove>,
+    pub following_move: Option<Move>,
 }
 
 #[derive(Clone, Copy)]

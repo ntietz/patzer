@@ -1,4 +1,4 @@
-use chess::{Board, Color, MoveGen, Piece};
+use cozy_chess::{Board, Color, Piece};
 
 use super::types::Score;
 
@@ -10,10 +10,9 @@ const QUEEN_VALUE: Score = 900;
 const CHECKMATE_VALUE: Score = 20_000;
 
 pub fn evaluate(board: &Board, color: Color, to_move: Color) -> Score {
-    let moves = MoveGen::new_legal(board);
-    let num_moves = moves.len();
+    let num_moves = count_moves(board);
     if num_moves == 0 {
-        if board.checkers().popcnt() == 0 {
+        if board.checkers().len() == 0 {
             return 0;
         } else if to_move != color {
             return CHECKMATE_VALUE;
@@ -33,7 +32,7 @@ pub fn evaluate(board: &Board, color: Color, to_move: Color) -> Score {
 }
 
 fn material(board: &Board, color: Color) -> Score {
-    let color_bitboard = board.color_combined(color);
+    let color_bitboard = board.colors(color);
 
     let pawn_bitboard = board.pieces(Piece::Pawn) & color_bitboard;
     let bishop_bitboard = board.pieces(Piece::Bishop) & color_bitboard;
@@ -41,31 +40,40 @@ fn material(board: &Board, color: Color) -> Score {
     let rook_bitboard = board.pieces(Piece::Rook) & color_bitboard;
     let queen_bitboard = board.pieces(Piece::Queen) & color_bitboard;
 
-    pawn_bitboard.popcnt() as Score * PAWN_VALUE
-        + bishop_bitboard.popcnt() as Score * BISHOP_VALUE
-        + knight_bitboard.popcnt() as Score * KNIGHT_VALUE
-        + rook_bitboard.popcnt() as Score * ROOK_VALUE
-        + queen_bitboard.popcnt() as Score * QUEEN_VALUE
+    pawn_bitboard.len() as Score * PAWN_VALUE
+        + bishop_bitboard.len() as Score * BISHOP_VALUE
+        + knight_bitboard.len() as Score * KNIGHT_VALUE
+        + rook_bitboard.len() as Score * ROOK_VALUE
+        + queen_bitboard.len() as Score * QUEEN_VALUE
 }
 
 fn mobility(board: &Board, color: Color) -> Score {
     let mobility = if color != board.side_to_move() {
         if let Some(b) = board.null_move() {
-            MoveGen::new_legal(&b).len()
+            count_moves(&b)
         } else {
             0
         }
     } else {
-        MoveGen::new_legal(board).len()
+        count_moves(board)
     };
 
     mobility as Score * 10
 }
 
+fn count_moves(board: &Board) -> usize {
+    let mut num_moves = 0;
+    board.generate_moves(|moves| {
+        num_moves += moves.len();
+        false
+    });
+    num_moves
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chess::{Board, Color};
+    use cozy_chess::{Board, Color};
     use std::str::FromStr;
 
     #[test]

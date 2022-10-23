@@ -2,8 +2,17 @@ use crate::{
     evaluation::{evaluate, Score},
     transposition::{Evaluation, TranspositionTable},
 };
-use chess::{Board, ChessMove, MoveGen};
+use cozy_chess::{Board, Move};
 use rand::seq::SliceRandom;
+use std::str::FromStr;
+
+pub fn alpha_beta(board: &chess::Board, depth: u8) -> Option<chess::ChessMove> {
+    let fen = format!("{}", board);
+    let cozy_board = Board::from_fen(&fen, false).unwrap();
+    alpha_beta_(&cozy_board, depth).map(|m| {
+        chess::ChessMove::from_str(&format!("{}", m)).unwrap()
+    })
+}
 
 /// Basic implementation of alpha-beta pruning.
 /// More detail is available on the [CPW Alpha-Beta
@@ -16,7 +25,7 @@ use rand::seq::SliceRandom;
 /// Other improvements to come:
 ///  - Principal variation search, to seed the next round of search
 ///  - Quiescence search, to avoid the horizon effect
-pub fn alpha_beta(board: &Board, depth: u8) -> Option<ChessMove> {
+pub fn alpha_beta_(board: &Board, depth: u8) -> Option<Move> {
     let mut transposition_table = TranspositionTable::new();
 
     let mut best_score = -40_000;
@@ -26,7 +35,9 @@ pub fn alpha_beta(board: &Board, depth: u8) -> Option<ChessMove> {
     let beta = 80_000;
 
     for m in current_moves(board) {
-        let board = board.make_move_new(m);
+        let mut board = board.clone();
+        board.play(m);
+
         let score = -alpha_beta_helper(board, -beta, -alpha, depth - 1, &mut transposition_table);
 
         if score > best_score {
@@ -51,7 +62,7 @@ fn alpha_beta_helper(
     depth_left: u8,
     transposition_table: &mut TranspositionTable,
 ) -> Score {
-    let hash = board.get_hash();
+    let hash = board.hash();
 
     // Reuse results if they've been computed before
     if let Some(entry) = transposition_table.retrieve(hash) {
@@ -82,7 +93,8 @@ fn alpha_beta_helper(
     }
 
     for m in current_moves(&board) {
-        let board = board.make_move_new(m);
+        let mut board = board.clone();
+        board.play(m);
 
         let score = -alpha_beta_helper(board, -beta, -alpha, depth_left - 1, transposition_table);
 
@@ -103,27 +115,33 @@ fn alpha_beta_helper(
 ///
 /// Right now the heuristic is "just shuffle them in place randomly," which
 /// is at least moderately better than just ignoring the order entirely.
-fn current_moves(board: &Board) -> Vec<ChessMove> {
+fn current_moves(board: &Board) -> Vec<Move> {
     let mut rng = &mut rand::thread_rng();
-    let mut moves: Vec<ChessMove> = MoveGen::new_legal(board).collect();
-    moves.shuffle(&mut rng);
-    moves
+    let mut all_moves: Vec<Move> = vec!();
+    board.generate_moves(|moves| {
+        for m in moves {
+            all_moves.push(m);
+        }
+        false
+    });
+    all_moves.shuffle(&mut rng);
+    all_moves
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chess::Board;
+    use cozy_chess::Board;
     use std::str::FromStr;
 
     #[test]
     fn ab_detects_smothered_mate() {
         let board = Board::from_str("2r4k/6pp/8/4N3/8/1Q6/B5PP/7K w - - 0 1").unwrap();
-        let candidate = alpha_beta(&board, 6);
+        let candidate = alpha_beta_(&board, 6);
 
-        let expected = vec![
-            ChessMove::from_san(&board, "Qg8").unwrap(),
-            ChessMove::from_san(&board, "Ng6").unwrap(),
+        let expected: Vec<Move> = vec![
+            Move::from_str("b3g8").unwrap(),
+            Move::from_str("e5g6").unwrap(),
         ];
 
         assert!(candidate.is_some());
